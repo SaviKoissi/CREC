@@ -1,25 +1,28 @@
 # Training Day 2
 # Koissi Savi (Ph.D.)
-# 
+####CLASSIFICATION TREE MODEL
 
 library(tidyverse)
 library(readxl)
 library(tmap)
 library(sf)
 library(raster)
+library(rasterVis)
 library(httr)
 library(jsonlite)
 library(rpart)
 library(rpart.plot)
+library(ENMeval)
+# library(dismo) # required a specific way to install it
+library(ecospat)
+library(jsonlite)
 
 #Load dataset
 
 occur <- read.delim("/Users/koissi/Desktop/Seminar_docs/Training/CREC/Day2/Data/occurrence.txt")
 
-# occur <- read.table("/Users/koissi/Desktop/Seminar_docs/Training/CREC/Day2/Data/occurrence.txt", header = TRUE, sep = "\t", fill = TRUE)
-
 # Select relevant columns
-selected_columns <- c("decimalLatitude", "decimalLongitude", "eventDate", "kingdom", "phylum", "class", "order", "family", "genus", "species") #"landCover", "temperature", ,  "precipitation","elevation",  "habitat", 
+selected_columns <- c("decimalLatitude", "decimalLongitude", "eventDate", "kingdom", "phylum", "class", "order", "family", "genus", "species")
 
 # Subset data
 occur_subset <- occur %>% 
@@ -91,7 +94,6 @@ occur_sf <- st_as_sf(occur_subset,
 # Set the color based on the presence variable
 occur_sf$color <- ifelse(occur_sf$presence == 1, "red", "blue")
 
-
 # Set up a thematic map using tm_shape
 tm <- tmap_mode("view")+
   tm_shape(World) +
@@ -115,7 +117,7 @@ wc_elev <- raster(file.path(worldclim_path, "wc2.1_10m_elev.tif"))
 
 # Assuming 'occur_subset' contains latitude and longitude columns
 occur_subset <- occur_subset %>%
-  mutate(elevation = extract(wc_elev, cbind(decimalLongitude, decimalLatitude)))
+  mutate(elevation = raster::extract(wc_elev, cbind(decimalLongitude, decimalLatitude)))
 
 # Get Temperature data 
 wc_tavg_files <- list.files(file.path(worldclim_path, "/wc2.1_10m_tavg"),
@@ -123,14 +125,16 @@ wc_tavg_files <- list.files(file.path(worldclim_path, "/wc2.1_10m_tavg"),
 
 # Load the temperature raster
 wc_tavg <- raster(wc_tavg_files[1])
-  
+
 # Extract temperature values for each occurrence point and day
 occur_subset <- occur_subset %>%
-    rowwise() %>%
-    dplyr::mutate(temperature = 
-                    extract(wc_tavg, cbind(decimalLongitude, decimalLatitude))) %>% 
+  rowwise() %>%
+  dplyr::mutate(temperature = 
+                  raster::extract(wc_tavg, 
+                                  cbind(decimalLongitude, 
+                                        decimalLatitude))) %>% 
   drop_na()
-  
+
 summary(occur_subset[, c("temperature", "elevation")])
 
 # Define the response variable
@@ -147,10 +151,6 @@ set.seed(1)
 sample <- sample(c(TRUE, FALSE), nrow(occur_subset), replace=TRUE, prob=c(0.8,0.2))
 train  <- occur_subset[sample, ]
 test   <- occur_subset[!sample, ]
-
-
-###CLASSIFICATION TREE MODEL
-
 
 # Build the Classification Tree model
 cta_model <- rpart(presence ~ ., data = dplyr::select(train, predictor_vars, presence), method = "class")
@@ -179,7 +179,8 @@ confusion_matrix <- table(predictions, test$species)
 # and the model correctly predicted it as 1.
 
 # A more manual way to write the confusion the confusion matrix
-confusion_matrix <- matrix(c(3, 0, 0, 182), nrow = 2, byrow = TRUE, dimnames = list(actual = c(0, 1), predicted = c(0, 1)))
+confusion_matrix <- matrix(c(3, 0, 0, 182), nrow = 2, byrow = TRUE, 
+                           dimnames = list(actual = c(0, 1), predicted = c(0, 1)))
 
 # Function to calculate performance metrics
 calculate_metrics <- function(conf_matrix) {
@@ -202,5 +203,3 @@ metrics <- calculate_metrics(confusion_matrix)
 
 # Print the results
 print(metrics)
-
-## ENSEMBLE MODELS
