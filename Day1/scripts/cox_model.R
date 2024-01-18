@@ -60,6 +60,8 @@ summary(cox_model)
 # Fit the survival model
 fit <- survfit(Surv(follow_up_days, event) ~ treatment, data = data)
 
+dev.off()
+
 
 # Create survival plot
 ggsurvplot(
