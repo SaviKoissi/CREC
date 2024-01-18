@@ -2,26 +2,49 @@
 # Koissi Savi (Ph.D.)
 # 
 
-library(tidyverse)
-library(readxl)
-library(tmap)
-library(sf)
-library(raster)
-library(rasterVis)
-library(httr)
-library(jsonlite)
-library(rpart)
-library(rpart.plot)
-library(ENMeval)
-# library(dismo) # required a specific way to install it
-library(ecospat)
-library(jsonlite)
+# List of required packages
+required_packages <- c(
+  "tidyverse", "readxl", "tmap", "sf", "raster", 
+  "rasterVis", "httr", "jsonlite", "rpart", 
+  "rpart.plot", "ENMeval", "ecospat", "jsonlite"
+)
+
+# Install and load missing packages
+for (pkg in required_packages) {
+  if (!(pkg %in% installed.packages()[,"Package"])) {
+    install.packages(pkg, dependencies = TRUE)
+  }
+  library(pkg, character.only = TRUE)
+}
+
+# Load all installed packages
+installed_packages <- as.data.frame(installed.packages())
+loadable_packages <- installed_packages$Package[installed_packages$LibPath == .libPaths()[1]]
+invisible(sapply(loadable_packages, function(pkg) {
+  try(library(pkg, character.only = TRUE), silent = TRUE)
+}))
+
+
+# library(tidyverse)
+# library(readxl)
+# library(tmap)
+# library(sf)
+# library(raster)
+# library(rasterVis)
+# library(httr)
+# library(jsonlite)
+# library(rpart)
+# library(rpart.plot)
+# library(ENMeval)
+# # library(dismo) # required a specific way to install it
+# library(ecospat)
+# library(jsonlite)
 
 #Load dataset
 
 occur <- read.delim("/Users/koissi/Desktop/Seminar_docs/Training/CREC/Day2/Data/occurrence.txt")
 
-# occur <- read.table("/Users/koissi/Desktop/Seminar_docs/Training/CREC/Day2/Data/occurrence.txt", header = TRUE, sep = "\t", fill = TRUE)
+
 
 # Select relevant columns
 selected_columns <- c("decimalLatitude", "decimalLongitude", "eventDate", "kingdom", "phylum", "class", "order", "family", "genus", "species") #"landCover", "temperature", ,  "precipitation","elevation",  "habitat", 
